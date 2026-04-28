@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Superstore Sales Forecast</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            width: 90%;
+            max-width: 900px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        h1 { margin-bottom: 20px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+        canvas { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <h1>Superstore Analytics Dashboard</h1>
+
+    <div class="glass-card">
+        <canvas id="salesChart"></canvas>
+    </div>
+
+    <script>
+        async function loadDashboard() {
+            // 1. Fetch data from your FastAPI backend
+            const historyRes = await fetch('http://127.0.0.1:8000/data/history');
+            const forecastRes = await fetch('http://127.0.0.1:8000/data/forecast');
+            
+            const history = await historyRes.json();
+            const forecast = await forecastRes.json();
+
+            // 2. Prepare labels (Dates) and values (Sales)
+            const labels = [...history.map(d => d['Order Date']), ...forecast.map(d => d['Order Date'])];
+            const historyData = history.map(d => d['Sales']);
+            
+            // Forecast data needs to start where history ends to look continuous
+            const forecastPadding = new Array(historyData.length - 1).fill(null);
+            const forecastData = [...forecastPadding, historyData[historyData.length - 1], ...forecast.map(d => d['Sales'])];
+
+            // 3. Create the Chart
+            const ctx = document.getElementById('salesChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Historical Sales',
+                        data: historyData,
+                        borderColor: '#00d2ff',
+                        backgroundColor: 'rgba(0, 210, 255, 0.2)',
+                        fill: true,
+                        tension: 0.3
+                    }, {
+                        label: 'SARIMA Forecast',
+                        data: forecastData,
+                        borderColor: '#ff007f',
+                        borderDash: [5, 5], // This makes the line dashed
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { labels: { color: 'white' } } },
+                    scales: {
+                        y: { ticks: { color: 'white' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+                        x: { ticks: { color: 'white' }, grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        loadDashboard();
+    </script>
+</body>
+</html>

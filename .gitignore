@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+# Optional: if your model file is very large, keep it local
+# sarima_model.pkl
